@@ -130,7 +130,7 @@ Terrain::Terrain() {
     
 }
 
-unsigned char* loadTexture(const char *textureFile) {
+unsigned char* Terrain::loadTexture(const char *textureFile) {
     int width, height, nrChannels;
     unsigned char *data = stbi_load(textureFile, &width, &height, &nrChannels, 0);
     if (!data) cout << "Image failed to load at path: " << textureFile << endl;
