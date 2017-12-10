@@ -38,6 +38,7 @@ class Terrain {
 protected:
     vector<glm::vec3> vertices; // binded with VBO
     vector<GLuint> indices; // binded with EBO
+//    vector< vector<GLuint> > indices; // binded with EBO
     vector<glm::vec3> normals; // binded with NBO
     
 public:
@@ -49,14 +50,26 @@ public:
     
     Terrain();
     ~Terrain();
+    
+    static float minX;
+    static float minY;
+    static float minZ;
+    
+    static float maxX;
+    static float maxY;
+    static float maxZ;
 
     void draw(GLuint shaderProgram, glm::mat4 toWorld);
     void loadTexture(const char* textureFile, GLuint textureID);
+    
+    unsigned char* loadTexture(const char* textureFile);
+    
     float getHeight(int x, int z, int height);//
     void generateHeightMap(unsigned int width, unsigned int height);
     
     void generateVertices();
     void generateIndices();
+    void generateNormals();
     void generateVertices(unsigned int width, unsigned int height);
     void generateIndices(vector<glm::vec3> vertices, int width, int height); // unsigned?
     void generateNormals(vector<glm::vec3> vertices, unsigned int width, unsigned int height); //
