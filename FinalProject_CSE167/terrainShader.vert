@@ -9,16 +9,13 @@ uniform mat4 modelview;
 uniform mat4 model; //toWorld
 
 out vec3 terrainNormal;
-//out vec3 TexCoords;
 out vec2 texCoords;
 
 void main()
 {
-//    TexCoords = position;
     // OpenGL maintains the D matrix so you only need to multiply by P, V (aka C inverse), and M
     gl_Position = projection * modelview * vec4(position.x, position.y, position.z, 1.0);
 
     terrainNormal = normal;
-//    TexCoords = position;
     texCoords = vec2(position.x, position.z);
 }
