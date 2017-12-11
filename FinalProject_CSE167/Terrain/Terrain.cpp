@@ -12,9 +12,6 @@
 #define TERRAIN_X  300 // number of vertices along the x and z axes
 #define TERRAIN_Z 300
 
-//#define TERRAIN_X  5 // number of vertices along the x and z axes
-//#define TERRAIN_Z 5
-
 // the number of height nodes we have
 #define TERRAIN_VERTEXCOUNT (TERRAIN_X * TERRAIN_Z)
 // number of quads multiplied by 2 (as we need 2 triangles to make up each quad)
@@ -22,8 +19,14 @@
 
 // The size (x and z axes) and height (y axis) for the terrain
 #define TERRAIN_SIZE  300.0f
-//#define TERRAIN_SIZE  5.0f
 #define TERRAIN_HEIGHT 10
+
+// Enable multitexture blending across the terrain
+#ifndef ENABLE_MULTITEXTURE
+#define ENABLE_MULTITEXTURE 1
+#endif
+
+// Enable the blend constants based on the slope of the terrain
 
 float Terrain::minX = numeric_limits<float>::max();
 float Terrain::minY = numeric_limits<float>::max();
@@ -35,13 +38,14 @@ float Terrain::maxZ = numeric_limits<float>::min();
 int width, height, nrChannels;
 
 // an array of floats to hold the heights of each vertex
-float terrainHeights[TERRAIN_X][TERRAIN_Z];
+//float terrainHeights[TERRAIN_X][TERRAIN_Z];
 
 const int SCALE = 60.0f;
 const char *noise1 = "noise1.ppm";
 const char *noise2 = "noise2.ppm";
 const char *rockImg = "rock.ppm";
 const char *grassImg = "grass.ppm";
+const char *snowImg = "snow.ppm";
 
 float Terrain::getHeight(int x, int z, int height) {
     if ((float)x + (float)z * (float)height > yVal.size()-1) return 0.0f;
@@ -77,28 +81,13 @@ Terrain::Terrain() {
     for (int x = 0; x < TERRAIN_VERTEXCOUNT; x++) {
         vertices.push_back(glm::vec3(1.0f));
     }
-//    for (int x = 0; x < TERRAIN_TRIANGLECOUNT; x++) {
-//        indices.push_back(0);
-//    }
-    
-//    for (int x = 0; x < (TERRAIN_X-1) * (TERRAIN_Z-1) * 6; x++) {
-//        indices.push_back(0);
-//    }
-
 
     generateHeightMap(width, height);
     generateVertices();
     generateIndices();
     generateNormals();
-    
-//    for (glm::vec3 n: normals) {
-//        cout << "normal: " << n.x << ", " << n.y << ", " << n.z << endl;
-//    }
-    
+
     ///////////////////////////////////
-    
-    loadTexture(rockImg, rockTexture);
-//    loadTexture(grassImg, grassTexture);
     
     // Binding data
     glGenVertexArrays(1, &VAO);
@@ -128,31 +117,78 @@ Terrain::Terrain() {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
     
-}
-
-unsigned char* Terrain::loadTexture(const char *textureFile) {
+    /////////Textures/////////////
+    
     int width, height, nrChannels;
-    unsigned char *data = stbi_load(textureFile, &width, &height, &nrChannels, 0);
-    if (!data) cout << "Image failed to load at path: " << textureFile << endl;
-    return data;
-}
-
-void Terrain::loadTexture(const char *textureFile, GLuint textureID) {
-//    // bind textures
-    glGenTextures(1, &textureID);
-    glBindTexture(GL_TEXTURE_2D, textureID);
-    // load texture image
-    int width, height, nrChannels;
-    unsigned char *data = stbi_load(textureFile, &width, &height, &nrChannels, 0);
-    if (!data) cout << "Image failed to load at path: " << rockImg << endl;
-
-    // Give the image to OpenGL
+    unsigned char *data = stbi_load(grassImg, &width, &height, &nrChannels, 0);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, data);
-
+    stbi_image_free(data);
+    
+    glUniform1i(glGetUniformLocation(Window::shaderProgram_terrain, "texture_0"), 0);
+    glUniform1i(glGetUniformLocation(Window::shaderProgram_terrain, "texture_1"), 1);
+    glUniform1i(glGetUniformLocation(Window::shaderProgram_terrain, "texture_2"), 2);
+    
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, rockTexture);
+    
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, grassTexture);
+    
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, snowTexture);
+    
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); // mipmap linear?
+    
+//    glGenTextures(1, &rockTexture);
+//    glActiveTexture(GL_TEXTURE0);
+//    glEnable(GL_TEXTURE0);
+//    glBindTexture(GL_TEXTURE0, rockTexture);
+//    loadTexture(rockImg, rockTexture);
+//    glUniform1i(glGetUniformLocation(Window::shaderProgram_terrain, "texture_0"), 0);
+    
+    
+//    glGenTextures(1, &grassTexture);
+//    glActiveTexture(GL_TEXTURE1);
+//    glEnable(GL_TEXTURE1);
+//    glBindTexture(GL_TEXTURE1, grassTexture);
+//    loadTexture(grassImg, grassTexture);
+//    glUniform1i(glGetUniformLocation(Window::shaderProgram_terrain, "texture_1"), 1);
 
+//    glGenTextures(1, &snowTexture);
+//    glActiveTexture(GL_TEXTURE2);
+//    glEnable(GL_TEXTURE2);
+//    glBindTexture(GL_TEXTURE2, snowTexture);
+//    loadTexture(snowImg, snowTexture);
+//    glUniform1i(glGetUniformLocation(Window::shaderProgram_terrain, "texture_2"), 2);
+}
+
+
+void Terrain::loadTexture(const char *textureFile, GLuint textureID) {
+    int width, height, nrChannels;
+    unsigned char *data = stbi_load(textureFile, &width, &height, &nrChannels, 0);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, data);
     stbi_image_free(data);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); // mipmap linear?
+    
+//    // bind textures
+//    glGenTextures(1, &textureID);
+//    glActiveTexture(textureID);
+//    glEnable(GL_TEXTURE_2D);
+//    glBindTexture(GL_TEXTURE_2D, textureID);
+//    // load texture image
+//    int width, height, nrChannels;
+//    unsigned char *data = stbi_load(textureFile, &width, &height, &nrChannels, 0);
+//    if (!data) cout << "Image failed to load at path: " << textureFile << endl;
+//
+//    // Give the image to OpenGL
+//    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, data);
+//
+//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); // mipmap linear?
+//
+//    stbi_image_free(data);
 }
 
 Terrain::~Terrain() {
@@ -160,6 +196,7 @@ Terrain::~Terrain() {
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &EBO);
     glDeleteBuffers(1, &NBO);
+    // delete textures
 }
 
 void Terrain::generateVertices() {
@@ -211,47 +248,6 @@ void Terrain::generateIndices() {
             indices.push_back((GLuint)((y + 1) * TERRAIN_X));
         }
     }
-    
-//    for (GLuint i: indices) {
-//        cout << "index: " << i << endl;
-//    }
-    
-//    for (int x = 0; x < TERRAIN_X - 1; ++x) {
-//        for (int z = 0; z < TERRAIN_Z - 1; ++z) {
-//            GLuint a = (x * TERRAIN_X) + z;
-//            GLuint b = ((x+1) * TERRAIN_X) + z;
-//            GLuint c = ((x+1) * TERRAIN_X) + (z+1);
-//            GLuint d = (x * TERRAIN_X) + (z+1);
-//
-//            indices[numIndices++] = c;
-//            indices[numIndices++] = b;
-//            indices[numIndices++] = a;
-//
-//            indices[numIndices++] = a;
-//            indices[numIndices++] = d;
-//            indices[numIndices++] = c;
-//        }
-    
-//    for (int x = 0; x < TERRAIN_X - 1; ++x) {
-//        for (int z = 0; z < TERRAIN_Z - 1; ++z) {
-//            indices.push_back((GLuint)((x * TERRAIN_X + z)));
-//            indices.push_back((GLuint)(((x+1) * TERRAIN_X + z)));
-//            indices.push_back((GLuint)((x * TERRAIN_X + (z+1))));
-//
-//            indices.push_back((GLuint)((x+1) * TERRAIN_X + z));
-//            indices.push_back((GLuint)(x * TERRAIN_X + (z+1)));
-//            indices.push_back((GLuint)((x+1) * TERRAIN_X + (z+1)));
-            
-//            indices.push_back((GLuint)((x + z * TERRAIN_X)));
-//            indices.push_back((GLuint)(x + (z+1) * TERRAIN_X));
-//            indices.push_back((GLuint)(((x+1) + z * TERRAIN_X)));
-//
-//            indices.push_back((GLuint)((x + (z+1) * TERRAIN_X)));
-//            indices.push_back((GLuint)((x+1) + (z+1) * TERRAIN_X));
-//            indices.push_back((GLuint)((x+1) + z * TERRAIN_X));
-//        }
-        
-//    }
 }
 
 void Terrain::generateNormals() {
@@ -265,41 +261,10 @@ void Terrain::generateNormals() {
 
             glm::vec3 n = glm::vec3(hl - hr, 2.0f, hd - hu);
             
-//            glm::vec3 hl = vertices[x + z * TERRAIN_X];
-//            glm::vec3 hr = vertices[(x+1) + z * TERRAIN_X];
-//            glm::vec3 hd = vertices[x + (z+1) * TERRAIN_X];
-//            glm::vec3 hu = vertices[x + (z-1) * TERRAIN_X];
-//
-//            glm::vec3 n = glm::cross(hl - hr, hd - hu);
-            
             n = glm::normalize(n);
-
             normals.push_back(n);
         }
     }
-    
-//    for (int x = 0; x < TERRAIN_X - 1; x++) {
-//        for (int z = 0; z < TERRAIN_Z - 1; z++) {
-//
-////            glm::vec3 triangle0
-////            = glm::vec3(getHeight(x, z, height), getHeight(x+1, z, height), getHeight(x+1, z+1, height));
-////
-////            glm::vec3 triangle1
-////            = glm::vec3(getHeight(x+1, z+1, height), getHeight(x, z+1, height), getHeight(x, z, height));
-//
-//            glm::vec3 triangleNorm0
-//            = glm::cross(vertices[x + z * TERRAIN_X] - vertices[(x+1) + z * TERRAIN_X],
-//                         vertices[(x+1) + z * TERRAIN_X] - vertices[(x+1) + (z+1) * TERRAIN_X]);
-//
-//            glm::vec3 triangleNorm1
-//            = glm::cross(vertices[(x+1) + (z+1) * TERRAIN_X] - vertices[x + (z+1) * TERRAIN_X],
-//                         vertices[x + (z+1) * TERRAIN_X] - vertices[x + z * TERRAIN_X]);
-//
-//            normals.push_back(glm::normalize(triangleNorm0));
-//            normals.push_back(glm::normalize(triangleNorm1));
-//
-//        }
-//    }
 
 }
 
@@ -308,6 +273,10 @@ void Terrain::draw(GLuint shaderProgram, glm::mat4 toWorld) {
     
 //    glEnable(GL_TEXTURE_2D);
 //    glBindTexture(GL_TEXTURE_2D, rockTexture);
+//
+//    glUniform1i(glGetUniformLocation(shaderProgram, "texture_0"), rockTexture);
+//
+//
     
     glm::mat4 modelview = Window::V * toWorld; // before it was C
     // Now send these values to the shader program
@@ -321,9 +290,8 @@ void Terrain::draw(GLuint shaderProgram, glm::mat4 toWorld) {
     // Now draw the terrain. We simply need to bind the VAO associated with it.
     glBindVertexArray(VAO);
     // Tell OpenGL to draw with triangles, using 36 indices, the type of the indices, and the offset to start from
-//    glPointSize(2.0f);
-//    glDrawArrays(GL_POINTS, 0, (GLsizei)vertices.size());
     glDrawElements(GL_TRIANGLE_STRIP, (GLsizei)indices.size(), GL_UNSIGNED_INT, 0);
+    
     // Unbind the VAO when we're done so we don't accidentally draw extra stuff or tamper with its bound buffers
     glBindVertexArray(0);
 }
