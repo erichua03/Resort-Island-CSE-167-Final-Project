@@ -38,18 +38,24 @@ class Terrain {
 protected:
     vector<glm::vec3> vertices; // binded with VBO
     vector<GLuint> indices; // binded with EBO
-//    vector< vector<GLuint> > indices; // binded with EBO
     vector<glm::vec3> normals; // binded with NBO
+    
+    vector<glm::vec3> tangents; // binded with VBO_T
+    vector<glm::vec3> bitangents; // binded with VBO_BT
     
 public:
     
-    GLuint VAO, VBO, EBO, NBO;
-    GLuint rockTexture, grassTexture, snowTexture; // textureIDs
+    GLuint VAO, VBO, EBO, NBO; // vertices, indices, normals
+    GLuint VBO_T, VBO_BT; // tangent and bitangent
     vector<float> yVal; // heights
     vector<float> hMap; // terrain heights
     
     Terrain();
     ~Terrain();
+    
+    GLuint rockTexture, grassTexture, snowTexture, normalTexture; // textureIDs
+    static const unsigned int m_uiNumTextures = 3;
+    GLuint  m_GLTextures[m_uiNumTextures];
     
     static float minX;
     static float minY;
@@ -62,7 +68,7 @@ public:
     void draw(GLuint shaderProgram, glm::mat4 toWorld);
     void loadTexture(const char* textureFile, GLuint textureID);
     
-    unsigned char* loadTexture(const char* textureFile);
+    unsigned char* loadTexture(const char* textureFile, int width, int height, int nrChannels);
     
     float getHeight(int x, int z, int height);//
     void generateHeightMap(unsigned int width, unsigned int height);
@@ -70,9 +76,12 @@ public:
     void generateVertices();
     void generateIndices();
     void generateNormals();
-    void generateVertices(unsigned int width, unsigned int height);
-    void generateIndices(vector<glm::vec3> vertices, int width, int height); // unsigned?
-    void generateNormals(vector<glm::vec3> vertices, unsigned int width, unsigned int height); //
+    
+    void gen_tangent_bitangent(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, glm::vec2 uv0, glm::vec2 uv1, glm::vec2 uv2);
+    
+//    void generateVertices(unsigned int width, unsigned int height);
+//    void generateIndices(vector<glm::vec3> vertices, int width, int height); // unsigned?
+//    void generateNormals(vector<glm::vec3> vertices, unsigned int width, unsigned int height); //
 };
 
 #endif /* Terrain_h */
