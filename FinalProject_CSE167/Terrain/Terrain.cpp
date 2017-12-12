@@ -9,8 +9,8 @@
 #include "Terrain.h"
 #include "Window.h"
 
-#define TERRAIN_X  300 // number of vertices along the x and z axes
-#define TERRAIN_Z 300
+#define TERRAIN_X  500 // number of vertices along the x and z axes
+#define TERRAIN_Z 500
 
 // the number of height nodes we have
 #define TERRAIN_VERTEXCOUNT (TERRAIN_X * TERRAIN_Z)
@@ -18,8 +18,8 @@
 #define TERRAIN_TRIANGLECOUNT ((TERRAIN_X - 1) * (TERRAIN_Z - 1) * 2)
 
 // The size (x and z axes) and height (y axis) for the terrain
-#define TERRAIN_SIZE  300.0f // width
-#define TERRAIN_HEIGHT 10
+#define TERRAIN_SIZE  500.0f // width
+#define TERRAIN_HEIGHT 100
 
 // Enable multitexture blending across the terrain
 #ifndef ENABLE_MULTITEXTURE
@@ -37,9 +37,8 @@ float Terrain::maxZ = numeric_limits<float>::min();
 
 int width, height, nrChannels;
 
-//int width_0 = 0;
-//int height_0 = 0;
-//int nrChannels_0 = 0;
+//int width_0, height_0, nrChannels_0;
+//int width_1, height_1, nrChannels_1;
 
 const int SCALE = 60.0f;
 const char *noise1 = "noise1.ppm";
@@ -73,8 +72,8 @@ void Terrain::generateHeightMap(unsigned int width, unsigned int height) {
 Terrain::Terrain() {
 
 //    int width, height, nrChannels;
-    unsigned char *rgb = stbi_load(noise1, &width, &height, &nrChannels, 0); // height map
-    if (!rgb) cout << "Image failed to load at path: " << noise1 << endl;
+    unsigned char *rgb = stbi_load(noise2, &width, &height, &nrChannels, 0); // height map
+    if (!rgb) cout << "Image failed to load at path: " << noise2 << endl;
     // rgb is now three bytes per pixel, width * height size. Or NULL if load failed.
     
     for (size_t i = 0; i < width * height * 3; i += 3) {
@@ -91,6 +90,9 @@ Terrain::Terrain() {
     generateVertices();
     generateIndices();
     generateNormals();
+    
+    generateUVs();
+    generateTangents();
 
     ///////////////////////////////////
     
@@ -101,6 +103,7 @@ Terrain::Terrain() {
     glGenBuffers(1, &EBO);
     
     glBindVertexArray(VAO);
+    // Bind vertices
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(GLfloat) * 3, vertices.data(), GL_STATIC_DRAW); // &vertices[0].x
     
@@ -108,56 +111,150 @@ Terrain::Terrain() {
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
     
+    // Bind normals
     glBindBuffer(GL_ARRAY_BUFFER, NBO);
     glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(GLfloat) * 3, normals.data(), GL_STATIC_DRAW); // sizeof(glm::vec3)
-    
+
     // Enable the usage of layout location 1
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0); // when layout=1
     
+    // Bind indices
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), &(indices[0]), GL_STATIC_DRAW);
     
+    // Bind tangents
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_T);
+    glBufferData(GL_ARRAY_BUFFER, tangents.size() * sizeof(GLfloat) * 3, tangents.data(), GL_STATIC_DRAW);
+    
     // Enable the usage of layout location 2
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+    
+    // Bind bitangents
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_BT);
+    glBufferData(GL_ARRAY_BUFFER, bitangents.size() * sizeof(GLfloat) * 3, bitangents.data(), GL_STATIC_DRAW);
+    
     // Enable the usage of layout location 3
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
     
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
     
     /////////Textures/////////////
-    // Textures
-    int width_0, height_0, nrChannels_0;
-    unsigned char* rockData = stbi_load(rockImg, &width_0, &height_0, &nrChannels_0, 0);
+    int width_0, height_0, nrChannels_0; // optimize these calls when done with everything else
+    unsigned char* rockData = stbi_load(rockImg, &width_0, &height_0, &nrChannels_0, 0); // rock
     if (!rockData) cout << "Image failed to load at path: " << rockImg << endl;
-    
+
     int width_1, height_1, nrChannels_1;
-    unsigned char* grassData = stbi_load(grassImg, &width_1, &height_1, &nrChannels_1, 0);
+    unsigned char* grassData = stbi_load(grassImg, &width_1, &height_1, &nrChannels_1, 0); // grass
     if (!grassData) cout << "Image failed to load at path: " << grassImg << endl;
-    
+
+    int width_2, height_2, nrChannels_2;
+    unsigned char* normalMapData = stbi_load(normalMapImg, &width_2, &height_2, &nrChannels_2, 0); // normal map
+    if (!normalMapData) cout << "Image failed to load at path: " << normalMapImg << endl;
+
+    // Bind rock texture
     glUniform1i(glGetUniformLocation(Window::shaderProgram_terrain, "texture_0"), 0);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, rockTexture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width_0, height_0, 0, GL_BGR, GL_UNSIGNED_BYTE, rockData);
-    
+
+    // Bind grass texture
     glUniform1i(glGetUniformLocation(Window::shaderProgram_terrain, "texture_1"), 1);
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, grassTexture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width_1, height_1, 0, GL_BGR, GL_UNSIGNED_BYTE, grassData);
+    
+    // Bind normal map texture
+    glUniform1i(glGetUniformLocation(Window::shaderProgram_terrain, "normalMap"), 2);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, normalTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width_2, height_2, 0, GL_BGR, GL_UNSIGNED_BYTE, normalMapData);
+    
+//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     
     glGenerateMipmap(GL_TEXTURE_2D);  // Generate mipmaps
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    
-//    glUniform1i(glGetUniformLocation(Window::shaderProgram_terrain, "normalMap"), 2);
-//    glGenTextures(1, &normalTexture);
-//    glBindTexture(GL_TEXTURE_2D, normalTexture);
-//    loadTexture(normalMap, normalTexture);
-//
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
+}
+
+void Terrain::generateUVs() {
+//    texCoords_2D = vec2(position.x, position.z);
+    
+    for (glm::vec3 position: vertices) {
+        glm::vec2 texCoords = glm::vec2(position.x, position.z);
+        uvs.push_back(texCoords);
+    }
+    
+//    for (glm::vec2 uv: uvs) {
+//        cout << "uv: " << uv.x << ", " << uv.y << endl;
+//    }
+}
+
+void Terrain::generateTangents() {
+    
+    for (int i = 0; i < vertices.size(); i += 3) {
+        glm::vec3 v0 = vertices[i];
+        glm::vec3 v1 = vertices[i+1];
+        glm::vec3 v2 = vertices[i+2];
+        
+        glm::vec2 uv0 = uvs[i];
+        glm::vec2 uv1 = uvs[i+1];
+        glm::vec2 uv2 = uvs[i+2];
+        
+        gen_tangent_bitangent(v0, v1, v2, uv0, uv1, uv2);
+    }
+    
+//    for (glm::vec3 t: tangents) {
+//        cout << "t: " << (float)t.x << ", " << (float)t.y << ", " << (float)t.z << endl;
+//    }
+}
+
+void Terrain::gen_tangent_bitangent(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, glm::vec2 uv0, glm::vec2 uv1, glm::vec2 uv2) {
+    glm::vec3 tangent, bitangent;
+    
+    glm::vec3 edge1 = p1 - p0; // edges of the triangle; position delta
+    glm::vec3 edge2 = p2 - p0;
+    glm::vec2 deltaUV1 = uv1 - uv0; // uv delta
+    glm::vec2 deltaUV2 = uv2 - uv0;
+    
+    float coef = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+    
+    //////////
+    
+    tangent = (edge1 * deltaUV2.y - edge2 * deltaUV1.y) * coef;
+    bitangent = (edge2 * deltaUV1.x - edge1 * deltaUV2.x) * coef;
+    
+    tangent = glm::normalize(tangent);
+    bitangent = glm::normalize(bitangent);
+
+    // set the same tangent for all three vertices of the triangle
+    // they will be merged in VBOindexer?
+    tangents.push_back(tangent);
+    tangents.push_back(tangent);
+    tangents.push_back(tangent);
+
+    bitangents.push_back(bitangent);
+    bitangents.push_back(bitangent);
+    bitangents.push_back(bitangent);
+    
+//    tangent.x = coef * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+//    tangent.y = coef * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
+//    tangent.z = coef * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+//    tangent = glm::normalize(tangent);
+//    tangents.push_back(tangent);
+//
+//    bitangent.x = coef * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
+//    bitangent.y = coef * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
+//    bitangent.z = coef * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
+//    bitangent = glm::normalize(bitangent);
+//    bitangents.push_back(bitangent);
 }
 
 unsigned char* Terrain::loadTexture(const char *textureFile, int width, int height, int nrChannels) {
@@ -176,26 +273,6 @@ void Terrain::loadTexture(const char *textureFile, GLuint textureID) {
     int width, height, nrChannels;
     unsigned char *data = stbi_load(textureFile, &width, &height, &nrChannels, 0);
     if (!data) cout << "Image failed to load at path: " << textureFile << endl;
-//    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, data);
-//    stbi_image_free(data);
-    
-//    // bind textures
-//    glGenTextures(1, &textureID);
-//    glActiveTexture(textureID);
-//    glEnable(GL_TEXTURE_2D);
-//    glBindTexture(GL_TEXTURE_2D, textureID);
-//    // load texture image
-//    int width, height, nrChannels;
-//    unsigned char *data = stbi_load(textureFile, &width, &height, &nrChannels, 0);
-//    if (!data) cout << "Image failed to load at path: " << textureFile << endl;
-//
-//    // Give the image to OpenGL
-//    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, data);
-//
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); // mipmap linear?
-//
-//    stbi_image_free(data);
 }
 
 Terrain::~Terrain() {
@@ -203,30 +280,7 @@ Terrain::~Terrain() {
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &EBO);
     glDeleteBuffers(1, &NBO);
-    // delete textures
-}
-
-void Terrain::gen_tangent_bitangent(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, glm::vec2 uv0, glm::vec2 uv1, glm::vec2 uv2) {
-    glm::vec3 tangent, bitangent;
-    
-    glm::vec3 edge1 = p1 - p0;
-    glm::vec3 edge2 = p2 - p0;
-    glm::vec2 deltaUV1 = uv1 - uv0;
-    glm::vec2 deltaUV2 = uv2 - uv0;
-    
-    float coef = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
-    
-    tangent.x = coef * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
-    tangent.y = coef * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
-    tangent.z = coef * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
-    tangent = glm::normalize(tangent);
-    tangents.push_back(tangent);
-    
-    bitangent.x = coef * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
-    bitangent.y = coef * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
-    bitangent.z = coef * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
-    bitangent = glm::normalize(bitangent);
-    bitangents.push_back(bitangent);
+    // delete VBO_T and VBO_BT
 }
 
 void Terrain::generateVertices() {
@@ -289,7 +343,6 @@ void Terrain::generateNormals() {
             normals.push_back(n);
         }
     }
-
 }
 
 
@@ -308,9 +361,18 @@ void Terrain::draw(GLuint shaderProgram, glm::mat4 toWorld) {
     
     // Now draw the terrain. We simply need to bind the VAO associated with it.
     glBindVertexArray(VAO);
+    
     // Tell OpenGL to draw with triangles, using 36 indices, the type of the indices, and the offset to start from
     glDrawElements(GL_TRIANGLE_STRIP, (GLsizei)indices.size(), GL_UNSIGNED_INT, 0);
     
     // Unbind the VAO when we're done so we don't accidentally draw extra stuff or tamper with its bound buffers
     glBindVertexArray(0);
 }
+
+
+
+
+
+
+
+

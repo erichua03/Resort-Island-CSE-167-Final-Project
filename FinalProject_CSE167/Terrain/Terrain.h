@@ -43,6 +43,9 @@ protected:
     vector<glm::vec3> tangents; // binded with VBO_T
     vector<glm::vec3> bitangents; // binded with VBO_BT
     
+    vector<glm::vec2> uvs; // texture coordinates
+    // texCoords_2D = vec2(position.x, position.z);
+    
 public:
     
     GLuint VAO, VBO, EBO, NBO; // vertices, indices, normals
@@ -77,11 +80,10 @@ public:
     void generateIndices();
     void generateNormals();
     
-    void gen_tangent_bitangent(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, glm::vec2 uv0, glm::vec2 uv1, glm::vec2 uv2);
+    void generateUVs();
     
-//    void generateVertices(unsigned int width, unsigned int height);
-//    void generateIndices(vector<glm::vec3> vertices, int width, int height); // unsigned?
-//    void generateNormals(vector<glm::vec3> vertices, unsigned int width, unsigned int height); //
+    void generateTangents(); // and bitangents
+    void gen_tangent_bitangent(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, glm::vec2 uv0, glm::vec2 uv1, glm::vec2 uv2);
 };
 
 #endif /* Terrain_h */
