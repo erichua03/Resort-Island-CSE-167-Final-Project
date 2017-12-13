@@ -69,11 +69,7 @@ public:
     static float maxZ;
 
     void draw(GLuint shaderProgram, glm::mat4 toWorld);
-    void loadTexture(const char* textureFile, GLuint textureID);
-    
     GLuint loadTexture(const char* textureFile);
-    
-    unsigned char* loadTexture(const char* textureFile, int width, int height, int nrChannels);
     
     float getHeight(int x, int z, int height);//
     void generateHeightMap(unsigned int width, unsigned int height);

@@ -94,12 +94,22 @@ Terrain::Terrain() {
     generateUVs();
     generateTangents();
 
-    ///////////////////////////////////
+    /////////Textures/////////
+    rockTexture = loadTexture(rockImg);
+    grassTexture = loadTexture(grassImg);
+    snowTexture = loadTexture(snowImg);
     
-    // Binding data
+    //  normalTexture = loadTexture(normalMapImg);
+    
+    //    // Bind normal map texture
+    //    glActiveTexture(GL_TEXTURE2);
+    //    glBindTexture(GL_TEXTURE_2D, normalTexture);
+    //    glUniform1i(glGetUniformLocation(Window::shaderProgram_terrain, "normalMap"), 2);
+    
+    /////////Binding data/////////
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
-    glGenBuffers(1, &NBO); // normal coloring
+    glGenBuffers(1, &NBO);
     glGenBuffers(1, &EBO);
     
     glBindVertexArray(VAO);
@@ -123,35 +133,24 @@ Terrain::Terrain() {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), &(indices[0]), GL_STATIC_DRAW);
     
-    // Bind tangents
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_T);
-    glBufferData(GL_ARRAY_BUFFER, tangents.size() * sizeof(GLfloat) * 3, tangents.data(), GL_STATIC_DRAW);
-    
-    // Enable the usage of layout location 2
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
-    
-    // Bind bitangents
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_BT);
-    glBufferData(GL_ARRAY_BUFFER, bitangents.size() * sizeof(GLfloat) * 3, bitangents.data(), GL_STATIC_DRAW);
-    
-    // Enable the usage of layout location 3
-    glEnableVertexAttribArray(3);
-    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+//    // Bind tangents
+//    glBindBuffer(GL_ARRAY_BUFFER, VBO_T);
+//    glBufferData(GL_ARRAY_BUFFER, tangents.size() * sizeof(GLfloat) * 3, tangents.data(), GL_STATIC_DRAW);
+//
+//    // Enable the usage of layout location 2
+//    glEnableVertexAttribArray(2);
+//    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+//
+//    // Bind bitangents
+//    glBindBuffer(GL_ARRAY_BUFFER, VBO_BT);
+//    glBufferData(GL_ARRAY_BUFFER, bitangents.size() * sizeof(GLfloat) * 3, bitangents.data(), GL_STATIC_DRAW);
+//
+//    // Enable the usage of layout location 3
+//    glEnableVertexAttribArray(3);
+//    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
     
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
-    
-    /////////Textures/////////////
-    rockTexture = loadTexture(rockImg);
-    grassTexture = loadTexture(grassImg);
-    
-//    normalTexture = loadTexture(normalMapImg);
-
-//    // Bind normal map texture
-//    glActiveTexture(GL_TEXTURE2);
-//    glBindTexture(GL_TEXTURE_2D, normalTexture);
-//    glUniform1i(glGetUniformLocation(Window::shaderProgram_terrain, "normalMap"), 2);
 
 }
 
@@ -240,24 +239,6 @@ void Terrain::gen_tangent_bitangent(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, gl
 //    bitangents.push_back(bitangent);
 }
 
-unsigned char* Terrain::loadTexture(const char *textureFile, int width, int height, int nrChannels) {
-//    int width, height, nrChannels;
-    unsigned char *data = stbi_load(textureFile, &width, &height, &nrChannels, 0);
-    if (!data) {
-        cout << "Image failed to load at path: " << textureFile << endl;
-        return nullptr;
-    } else {
-        return data;
-    }
-}
-
-
-void Terrain::loadTexture(const char *textureFile, GLuint textureID) {
-    int width, height, nrChannels;
-    unsigned char *data = stbi_load(textureFile, &width, &height, &nrChannels, 0);
-    if (!data) cout << "Image failed to load at path: " << textureFile << endl;
-}
-
 Terrain::~Terrain() {
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
@@ -326,6 +307,10 @@ void Terrain::generateNormals() {
             normals.push_back(n);
         }
     }
+    
+//    for (glm::vec3 n: normals) {
+//        cout << "height: " << n.y << endl;
+//    }
 }
 
 
@@ -347,13 +332,18 @@ void Terrain::draw(GLuint shaderProgram, glm::mat4 toWorld) {
     
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, rockTexture);
-    glUniform1i(glGetUniformLocation(Window::shaderProgram_terrain, "texture_0"), 0);
+    glUniform1i(glGetUniformLocation(shaderProgram, "texture_0"), 0);
     // Tell OpenGL to draw with triangles, using 36 indices, the type of the indices, and the offset to start from
-    glDrawElements(GL_TRIANGLE_STRIP, (GLsizei)indices.size(), GL_UNSIGNED_INT, 0);
+//    glDrawElements(GL_TRIANGLE_STRIP, (GLsizei)indices.size(), GL_UNSIGNED_INT, 0);
     
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, grassTexture);
-    glUniform1i(glGetUniformLocation(Window::shaderProgram_terrain, "texture_1"), 1);
+    glUniform1i(glGetUniformLocation(shaderProgram, "texture_1"), 1);
+    glDrawElements(GL_TRIANGLE_STRIP, (GLsizei)indices.size(), GL_UNSIGNED_INT, 0);
+    
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, snowTexture);
+    glUniform1i(glGetUniformLocation(shaderProgram, "texture_2"), 2);
     glDrawElements(GL_TRIANGLE_STRIP, (GLsizei)indices.size(), GL_UNSIGNED_INT, 0);
     
     // Unbind the VAO when we're done so we don't accidentally draw extra stuff or tamper with its bound buffers
