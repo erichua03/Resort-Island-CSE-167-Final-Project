@@ -4,7 +4,8 @@ in vec3 terrainNormal;
 in vec2 texCoords;
 in vec3 fragPos;
 //
-//in mat3 TBN;
+in mat3 TBN;
+in vec3 glPos;
 
 out vec4 fragColor;
 
@@ -13,7 +14,8 @@ uniform sampler2D texture_0; // rock
 uniform sampler2D texture_1; // grass
 uniform sampler2D texture_2; // snow
 //
-//uniform sampler2D normalMap; // normal mapping
+uniform sampler2D normalMap; // normal mapping
+uniform float renderHeight; //
 
 uniform vec3 lightPos;
 uniform vec3 viewPos;
@@ -23,25 +25,37 @@ void main()
     vec3 texColor_0 = texture(texture_0, texCoords).rgb;
     vec3 texColor_1 = texture(texture_1, texCoords).rgb;
     vec3 texColor_2 = texture(texture_2, texCoords).rgb;
-//    vec3 texColor_nm = texture(normalMap, texCoords).rgb;
-//    vec3 texColor = texColor_0;
-    
     vec3 texColor;
-  
-    float slope = 1.0f - terrainNormal.y;
-    float blendAmount = slope / 0.5f;;
-    if (slope < 0.55f) {
-//        blendAmount = slope / 0.5f;
-        texColor = mix(texColor_0, texColor_2, blendAmount);
-        
+
+    float height = fragPos.y / terrainNormal.y;
+    
+    const float range1 = -60.0f;
+    const float range2 = -5.0f;
+    const float range3 = 3.0f;
+    const float range4 = 30.0f;
+    
+    if (height < range1) {
+        texColor = texColor_1;
     }
-    else if (slope > 0.55f || slope < 0.65f){
-        texColor = mix(texColor_2, texColor_1, blendAmount);
-//        texColor = mix(texColor_0, texColor_1, blendAmount);
+    else if (height >= range1 && height < range2) {
+        texColor = mix(texColor_1, texColor_0, (height-range1)/(range2-range1));
+    }
+    else if (height >= range2 && height < range3) {
+        texColor = texColor_0;
+    }
+    else if (height >= range3 && height < range4) {
+        texColor = mix(texColor_0, texColor_2, (height-range3)/(range4-range3));
+    }
+    else {
+        texColor = texColor_2;
     }
     
-    fragColor = vec4(texColor, 1.0f);
-    
+    //////normal mapping//////
+//    vec3 norm = texture(normalMap, texCoords).rgb;
+//    norm = normalize(norm * 2.0f - 1.0f);
+//    norm = normalize(TBN * norm);
+
+    //////lighting//////
     vec3 ks = vec3(1.0f, 1.0f, 1.0f);
     vec3 kd = vec3(1.0f, 1.0f, 1.0f);
     vec3 ka = vec3(1.0f, 1.0f, 1.0f);
@@ -53,15 +67,6 @@ void main()
 
     vec3 norm = normalize(terrainNormal); //
 
-    // Normal mapping
-//    vec3 rgbNormal = terrainNormal * 0.5f + 0.5f; // transforms from [-1,1] to [0,1]
-//    norm = texture(normalMap, texCoords_2D).rgb; // obtain normal from normal map in range [0,1]
-//    norm = normalize(terrainNormal * 2.0f - 1.0f); // transform normal vector to range [-1,1]
-
-//    vec3 norm = texture(normalMap, texCoords).rgb;
-//    norm = normalize(norm * 2.0f - 1.0f);
-//    norm = normalize(TBN * norm);
-
     // Diffuse color
     float diff = max(dot(norm, lightDir), 0.0f);
     vec3 diffuse = diff * lightColor;
@@ -72,8 +77,8 @@ void main()
     // Specular color
     vec3 viewDir = normalize(viewPos - fragPos); // e;
 //    vec3 reflectDir = reflect((1.0f) * lightDir, normalize(terrainNormal)); // R = -L;
-    vec3 reflectDir = reflect((1.0f) * lightDir, norm); // R = -L; or -lightDir?
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0f), 10); // (e * R)^p
+    vec3 reflectDir = reflect((-1.0f) * lightDir, norm); // R = -L; or -lightDir?
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0f), 80.0f); // (e * R)^p
     vec3 specular = ks * spec * lightColor; // ks * cl * (e * R) ^ p
 
     // Final color

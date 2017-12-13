@@ -72,6 +72,7 @@ void Terrain::generateHeightMap(unsigned int width, unsigned int height) {
 Terrain::Terrain() {
 
 //    int width, height, nrChannels;
+    // Load noise image as height map
     unsigned char *rgb = stbi_load(noise2, &width, &height, &nrChannels, 0); // height map
     if (!rgb) cout << "Image failed to load at path: " << noise2 << endl;
     // rgb is now three bytes per pixel, width * height size. Or NULL if load failed.
@@ -98,13 +99,7 @@ Terrain::Terrain() {
     rockTexture = loadTexture(rockImg);
     grassTexture = loadTexture(grassImg);
     snowTexture = loadTexture(snowImg);
-    
-    //  normalTexture = loadTexture(normalMapImg);
-    
-    //    // Bind normal map texture
-    //    glActiveTexture(GL_TEXTURE2);
-    //    glBindTexture(GL_TEXTURE_2D, normalTexture);
-    //    glUniform1i(glGetUniformLocation(Window::shaderProgram_terrain, "normalMap"), 2);
+    normalTexture = loadTexture(normalMapImg);
     
     /////////Binding data/////////
     glGenVertexArrays(1, &VAO);
@@ -177,9 +172,11 @@ GLuint Terrain::loadTexture(const char *textureFile) {
 void Terrain::generateUVs() {
 //    texCoords_2D = vec2(position.x, position.z);
     
-    for (glm::vec3 position: vertices) {
-        glm::vec2 texCoords = glm::vec2(position.x, position.z);
-        uvs.push_back(texCoords);
+    for (glm::vec3 vertex: vertices) {
+//        glm::vec2 texCoords = glm::vec2(position.x, position.z);
+        glm::vec3 mappedVertex = glm::normalize(vertex * 0.5f + 0.5f); // map to [0,1]
+        glm::vec2 uv = glm::vec2(mappedVertex.x, mappedVertex.z);
+        uvs.push_back(uv);
     }
 }
 
@@ -198,26 +195,30 @@ void Terrain::generateTangents() {
     }
 }
 
-void Terrain::gen_tangent_bitangent(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, glm::vec2 uv0, glm::vec2 uv1, glm::vec2 uv2) {
+void Terrain::gen_tangent_bitangent(glm::vec3 v0, glm::vec3 v1, glm::vec3 v2, glm::vec2 uv0, glm::vec2 uv1, glm::vec2 uv2) {
     glm::vec3 tangent, bitangent;
     
-    glm::vec3 edge1 = p1 - p0; // edges of the triangle; position delta
-    glm::vec3 edge2 = p2 - p0;
+    glm::vec3 edge1 = v1 - v0; // edges of the triangle; position delta
+    glm::vec3 edge2 = v2 - v0;
     glm::vec2 deltaUV1 = uv1 - uv0; // uv delta
     glm::vec2 deltaUV2 = uv2 - uv0;
     
     float coef = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+//    cout << "coef: " << coef << endl;
     
     //////////
     
     tangent = (edge1 * deltaUV2.y - edge2 * deltaUV1.y) * coef;
     bitangent = (edge2 * deltaUV1.x - edge1 * deltaUV2.x) * coef;
-    
+
     tangent = glm::normalize(tangent);
     bitangent = glm::normalize(bitangent);
+    
+//    cout << "tangent: " << tangent.x << ", " << tangent.y << ", " << tangent.z << endl;
+//    cout << "bitangent: " << bitangent.x << ", " << bitangent.y << ", " << bitangent.z << endl;
 
-    // set the same tangent for all three vertices of the triangle
-    // they will be merged in VBOindexer?
+//     set the same tangent for all three vertices of the triangle
+//     they will be merged in VBOindexer?
     tangents.push_back(tangent);
     tangents.push_back(tangent);
     tangents.push_back(tangent);
@@ -227,10 +228,15 @@ void Terrain::gen_tangent_bitangent(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, gl
     bitangents.push_back(bitangent);
     
 //    tangent.x = coef * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+//
+//    cout << "deltaUV2.y * edge1.x: " << deltaUV2.y * edge1.x << ", " << "deltaUV1.y * edge2.x: " << deltaUV1.y * edge2.x << endl;
+//
 //    tangent.y = coef * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
 //    tangent.z = coef * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
 //    tangent = glm::normalize(tangent);
 //    tangents.push_back(tangent);
+//
+////    cout << "tangent: " << (float)tangent.x << ", " << (float)tangent.y << ", " << (float)tangent.z << endl;
 //
 //    bitangent.x = coef * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
 //    bitangent.y = coef * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
@@ -265,6 +271,8 @@ void Terrain::generateVertices() {
             if (fTerrainZ > maxZ) maxZ = fTerrainZ;
             ///////////
             fTerrainX += TERRAIN_SIZE / (TERRAIN_X - 1);
+            
+            glUniform1i(glGetUniformLocation(Window::shaderProgram_terrain, "renderHeight"), getHeight(x, z, height));// delete
         }
         
         fTerrainZ += TERRAIN_SIZE / (TERRAIN_Z - 1);
@@ -339,11 +347,16 @@ void Terrain::draw(GLuint shaderProgram, glm::mat4 toWorld) {
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, grassTexture);
     glUniform1i(glGetUniformLocation(shaderProgram, "texture_1"), 1);
-    glDrawElements(GL_TRIANGLE_STRIP, (GLsizei)indices.size(), GL_UNSIGNED_INT, 0);
+//    glDrawElements(GL_TRIANGLE_STRIP, (GLsizei)indices.size(), GL_UNSIGNED_INT, 0);
     
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, snowTexture);
     glUniform1i(glGetUniformLocation(shaderProgram, "texture_2"), 2);
+    glDrawElements(GL_TRIANGLE_STRIP, (GLsizei)indices.size(), GL_UNSIGNED_INT, 0);
+    
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, normalTexture);
+    glUniform1i(glGetUniformLocation(shaderProgram, "normalMap"), 3);
     glDrawElements(GL_TRIANGLE_STRIP, (GLsizei)indices.size(), GL_UNSIGNED_INT, 0);
     
     // Unbind the VAO when we're done so we don't accidentally draw extra stuff or tamper with its bound buffers
