@@ -19,25 +19,25 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 
-class Node {
+class Node1 {
 public:
 	virtual void draw(glm::mat4 C) = 0;
 	virtual void update(glm::vec3 point[]) = 0;
 };
 
-class Transform : public Node {
+class Transform1 : public Node1 {
 public:
 
 	glm::mat4 M=glm::mat4(1.0f);
-	Transform(glm::mat4 toW);
-	std::list<Node*> children;
+	Transform1(glm::mat4 toW);
+	std::list<Node1*> children;
 	void draw(glm::mat4 C);
 	void update(glm::vec3 point[]);
-	void addChild(Node* child);
-	void removeChild(Node* toD);
+	void addChild(Node1* child);
+	void removeChild(Node1* toD);
 };
 
-class Geometry : public Node {
+class Geometry1 : public Node1 {
 public:
 	int acc = 0;
     int flag;
@@ -48,8 +48,8 @@ public:
     std::vector<float> normals;
 	GLuint VBO=0, VAO=0, EBO=0;
 	glm::vec3 ctrlPoints[16] = {};
-	Geometry(glm::vec3 point[],float,float,float);
-    Geometry(std::vector<glm::vec3>, std::vector<unsigned>,float,float,float);
+	Geometry1(glm::vec3 point[],float,float,float);
+    Geometry1(std::vector<glm::vec3>, std::vector<unsigned>,float,float,float);
 	void draw(glm::mat4 C);
 	void update(glm::vec3 point[]);
 	int typeR;

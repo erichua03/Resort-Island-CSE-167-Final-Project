@@ -1,13 +1,11 @@
 #include "Bezier.h"
 #include "Window.h"
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
 #include <math.h>
 
 using namespace std;
 
-#define VERTEX_SHADER_PATH1 "/Users/dorishe/Desktop/CSE167StarterCode2/shaderPlant.vert"
-#define FRAGMENT_SHADER_PATH1 "/Users/dorishe/Desktop/CSE167StarterCode2/shaderPlant.frag"
+#define VERTEX_SHADER_PATH1 "shaderPlant.vert"
+#define FRAGMENT_SHADER_PATH1 "shaderPlant.frag"
 //Factorial
 int factorial(int n)
 {
@@ -15,26 +13,26 @@ int factorial(int n)
 }
 
 GLint shaderProgramCube;
-Transform::Transform(glm::mat4 toW) {
+Transform1::Transform1(glm::mat4 toW) {
 	M = toW;
 };
-void Transform::draw(glm::mat4 C) {
+void Transform1::draw(glm::mat4 C) {
 
 	for (auto child : children) {
 		child->draw(C*M);
 	}
 };
 
-void Transform::update(glm::vec3 point[]) {
+void Transform1::update(glm::vec3 point[]) {
 
 };
-void Transform::addChild(Node* child) { children.push_back(child); };
-void Transform::removeChild(Node* toD) {
+void Transform1::addChild(Node1* child) { children.push_back(child); };
+void Transform1::removeChild(Node1* toD) {
 	if ((std::find(children.begin(), children.end(), toD) != children.end())) {
 		children.remove(toD);
 	}
 };
-Geometry::Geometry(vector<glm::vec3> point, vector<unsigned> index,float rI,float gI,float bI){
+Geometry1::Geometry1(vector<glm::vec3> point, vector<unsigned> index,float rI,float gI,float bI){
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
     glGenBuffers(1, &EBO);
@@ -52,7 +50,7 @@ Geometry::Geometry(vector<glm::vec3> point, vector<unsigned> index,float rI,floa
 
 }
 
-Geometry::Geometry(glm::vec3 point[],float rI,float gI,float bI) {
+Geometry1::Geometry1(glm::vec3 point[],float rI,float gI,float bI) {
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
 	glGenBuffers(1, &EBO);
@@ -102,7 +100,7 @@ Geometry::Geometry(glm::vec3 point[],float rI,float gI,float bI) {
     
 };
 
-void Geometry::draw(glm::mat4 C) {
+void Geometry1::draw(glm::mat4 C) {
 
 	//float bazierCurve[6] = { ctrlPoints[0].x,ctrlPoints[0].y,ctrlPoints[0].z,ctrlPoints[3].x,ctrlPoints[3].y,ctrlPoints[3].z };
 	glBindVertexArray(VAO);
@@ -134,7 +132,7 @@ void Geometry::draw(glm::mat4 C) {
     
 
 };
-void Geometry::update(glm::vec3 point[]) {
+void Geometry1::update(glm::vec3 point[]) {
 	for (int i = 0; i < 16; i++) {
 		ctrlPoints[i] = point[i];
 	}
