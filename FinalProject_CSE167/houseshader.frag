@@ -32,7 +32,6 @@ uniform Light light;
 uniform Material material;
 uniform vec3 cam_pos;
 
-
 in vec3 Normal;
 in vec3 FragPos;
 in vec3 origin;
@@ -40,105 +39,98 @@ in vec3 origin;
 out vec4 color;
 
 
-
-
-
-// You can output many things. The first vec4 type output determines the color of the fragment
-
-
-
-
 void main()
 {
-	// normal
-	vec3 norm = normalize(Normal);
-	vec3 camPos = {0.0f, 0.0f, 20.0f};
-	vec3 viewDir = normalize(camPos - FragPos);
+    color = vec4(1.0f, 1.0f, 1.0f, 1.0f);
+    
+    // normal
+    vec3 norm = normalize(Normal);
+    vec3 camPos = vec3(0.0f, 0.0f, 20.0f);
+    vec3 viewDir = normalize(camPos - FragPos);
+    if (material.obj_mode == 0)    {
+        color = vec4(norm.x, norm.y, norm.z, 1.0f);
+    } else if (light.light_mode == 0) {
 
-	if (material.obj_mode == 0)	{
-		color = vec4(norm.x, norm.y, norm.z, 1.0f);
-	} else if (light.light_mode == 0) {
-			
-			mat3 lightTransform = transpose(inverse(mat3(light.transform)));
+        mat3 lightTransform = transpose(inverse(mat3(light.transform)));
 
-			vec3 lightDir = normalize(lightTransform*-light.light_dir);
+        vec3 lightDir = normalize(lightTransform*-light.light_dir);
 
-			float diff = max(dot(norm,lightDir),0.0f);
-			
-			vec3 ambient = light.light_color * material.ambient;
+        float diff = max(dot(norm,lightDir),0.0f);
 
-			vec3 reflectDir = reflect(-lightDir,norm);
+        vec3 ambient = light.light_color * material.ambient;
 
-			float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+        vec3 reflectDir = reflect(-lightDir,norm);
 
-			vec3 diffuse = light.light_color * material.diffuse * diff;
+        float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
 
-			vec3 specular = light.light_color * material.specular * spec;
+        vec3 diffuse = light.light_color * material.diffuse * diff;
 
-			color = vec4(specular + diffuse + ambient, 1.0f);
-		}
+        vec3 specular = light.light_color * material.specular * spec;
 
-		else if (light.light_mode == 1) {
+        color = vec4(specular + diffuse + ambient, 1.0f);
+    }
 
-			vec3 lightPos = vec3(light.transform * vec4(light.light_pos,1));
+    else if (light.light_mode == 1) {
 
-			vec3 lightDir = normalize(lightPos - FragPos);
+        vec3 lightPos = vec3(light.transform * vec4(light.light_pos,1));
 
-			float diff = max(dot(norm,lightDir),0.0f);
-			
-			
+        vec3 lightDir = normalize(lightPos - FragPos);
 
-			vec3 reflectDir = reflect(-lightDir,norm);
+        float diff = max(dot(norm,lightDir),0.0f);
 
-			float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
 
-			vec3 diffuse = light.light_color * material.diffuse * diff;
 
-			vec3 specular = light.light_color * material.specular * spec;
-			
-			vec3 attenuation = light.light_color / (light.linear_att * length(lightPos - FragPos));
-			vec3 ambient = light.light_color * material.ambient;
-			ambient = ambient * attenuation;
-			diffuse = diffuse * attenuation;
-			specular = specular * attenuation;
+        vec3 reflectDir = reflect(-lightDir,norm);
 
-			color = vec4(specular + diffuse + ambient, 1.0f);
-		}
+        float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
 
-		else if (light.light_mode == 2) {
-		
-			vec3 lightPos = vec3(light.transform* vec4(light.light_pos,1));
-			
-			vec3 lightDir = normalize(lightPos - FragPos);
+        vec3 diffuse = light.light_color * material.diffuse * diff;
 
-			
-			float angle = dot(-normalize(light.light_dir),lightDir);
-			vec3 src;
-			if (angle >= light.cutoff_angle ){
-				src = light.light_color * pow(angle,light.exponent);
-			} else {
-				src = vec3(0.0f,0.0f,0.0f);
-			}
-			vec3 attenuation = src / (light.quad_att * length(lightPos - FragPos) * length(lightPos - FragPos));
-			
-			float diff = max(dot(norm,lightDir),0.0f);
-		
-			vec3 ambient = light.light_color * material.ambient;
+        vec3 specular = light.light_color * material.specular * spec;
 
-			vec3 reflectDir = reflect(-lightDir,norm);
+        vec3 attenuation = light.light_color / (light.linear_att * length(lightPos - FragPos));
+        vec3 ambient = light.light_color * material.ambient;
+        ambient = ambient * attenuation;
+        diffuse = diffuse * attenuation;
+        specular = specular * attenuation;
 
-			float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+        color = vec4(specular + diffuse + ambient, 1.0f);
+    }
 
-			vec3 diffuse = light.light_color * material.diffuse * diff;
+    else if (light.light_mode == 2) {
 
-			vec3 specular = light.light_color * material.specular * spec;
+        vec3 lightPos = vec3(light.transform* vec4(light.light_pos,1));
 
-			
-			ambient = ambient * attenuation;
-			diffuse = diffuse * attenuation;
-			specular = specular * attenuation;
+        vec3 lightDir = normalize(lightPos - FragPos);
 
-			color = vec4(specular + diffuse + ambient, 1.0f);
-		}
-	
+
+        float angle = dot(-normalize(light.light_dir),lightDir);
+        vec3 src;
+        if (angle >= light.cutoff_angle ){
+            src = light.light_color * pow(angle,light.exponent);
+        } else {
+            src = vec3(0.0f,0.0f,0.0f);
+        }
+        vec3 attenuation = src / (light.quad_att * length(lightPos - FragPos) * length(lightPos - FragPos));
+
+        float diff = max(dot(norm,lightDir),0.0f);
+
+        vec3 ambient = light.light_color * material.ambient;
+
+        vec3 reflectDir = reflect(-lightDir,norm);
+
+        float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+
+        vec3 diffuse = light.light_color * material.diffuse * diff;
+
+        vec3 specular = light.light_color * material.specular * spec;
+
+
+        ambient = ambient * attenuation;
+        diffuse = diffuse * attenuation;
+        specular = specular * attenuation;
+
+        color = vec4(specular + diffuse + ambient, 1.0f);
+    }
+    
 }
