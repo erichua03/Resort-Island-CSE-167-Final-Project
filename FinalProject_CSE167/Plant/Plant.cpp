@@ -7,7 +7,7 @@ using namespace std;
 Plant::Plant()
 {
     toWorld = glm::mat4(1.0f);
-    parse("/Users/dorishe/Desktop/CSE167StarterCode2/antenna.obj");
+    parse("antenna.obj");
     angleA=40;
     angleB=20;
     glGenVertexArrays(1, &VAO);
@@ -112,7 +112,8 @@ void Plant::draw(GLuint shaderProgram,int n, glm::mat4 trans, glm::vec3 start, c
     glUniformMatrix4fv(uModelview, 1, GL_FALSE, &modelview[0][0]);
     glUniformMatrix4fv(uToWorld, 1, GL_FALSE, &(glm::translate(glm::mat4(1.0f),start)*trans1)[0][0]);
     
-    if(n>Window::layers-2){
+//    if(n>Window::layers-2){
+    if(n > 3){
         glUniform3f(uColor, 0.8f, 0.4f, 0.1f);
     }
     else{

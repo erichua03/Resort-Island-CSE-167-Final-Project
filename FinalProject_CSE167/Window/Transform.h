@@ -19,6 +19,7 @@ class Transform: public Group {
 		void update() ;
 		void rotate(float deg, glm::vec3 axis);
 		void translate(float x, float y, float z);
-		void Transform::scale(float x, float y, float z);
+		void scale(float x, float y, float z);
  };
 #endif
+
