@@ -107,16 +107,18 @@ void Plant::draw(GLuint shaderProgram,int n, glm::mat4 trans, glm::vec3 start, c
     uModelview = glGetUniformLocation(shaderProgram, "modelview");
     auto uToWorld = glGetUniformLocation(shaderProgram, "toWorld");
     auto uColor = glGetUniformLocation(shaderProgram, "color");
+    auto uFlag = glGetUniformLocation(shaderProgram, "flag");
     // Now send these values to the shader program
     glUniformMatrix4fv(uProjection, 1, GL_FALSE, &Window::P[0][0]);
     glUniformMatrix4fv(uModelview, 1, GL_FALSE, &modelview[0][0]);
     glUniformMatrix4fv(uToWorld, 1, GL_FALSE, &(glm::translate(glm::mat4(1.0f),start)*trans1)[0][0]);
+    glUniform1i(uFlag, 0);
     
     if(n>Window::layers-2){
         glUniform3f(uColor, 0.8f, 0.4f, 0.1f);
     }
     else{
-        glUniform3f(uColor, 1/float(n+1), 0.5f, 0.3f);
+        glUniform3f(uColor, 1/float(n+1.5f), 0.7f, 0.0f);
     }
     
     // Now draw the cube. We simply need to bind the VAO associated with it.
@@ -150,11 +152,15 @@ void Plant::draw(GLuint shaderProgram,int n, glm::mat4 trans, glm::vec3 start, c
 
 void Plant::update(int i){
     if (i==1){
-        angleA+=10;
-        angleB+=10;
+        if (angleA<90){
+            angleA+=10;
+            angleB+=10;
+        }
     }
     else{
-        angleA-=10;
-        angleB-=10;
+        if (angleA>0){
+            angleA-=10;
+            angleB-=10;
+        }
     }
 }
