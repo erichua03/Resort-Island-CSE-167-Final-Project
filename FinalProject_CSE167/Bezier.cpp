@@ -1,13 +1,13 @@
 #include "Bezier.h"
 #include "Window.h"
+#define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 #include <math.h>
 
 using namespace std;
 
-#define VERTEX_SHADER_PATH1 "/Users/dorishe/Desktop/CSE167StarterCode2/shader.vert"
-#define FRAGMENT_SHADER_PATH1 "/Users/dorishe/Desktop/CSE167StarterCode2/shader.frag"
-
+#define VERTEX_SHADER_PATH1 "/Users/dorishe/Desktop/CSE167StarterCode2/shaderPlant.vert"
+#define FRAGMENT_SHADER_PATH1 "/Users/dorishe/Desktop/CSE167StarterCode2/shaderPlant.frag"
 //Factorial
 int factorial(int n)
 {
@@ -48,15 +48,8 @@ Geometry::Geometry(vector<glm::vec3> point, vector<unsigned> index,float rI,floa
     r=rI;
     g=gI;
     b=bI;
-    
-    int width, height, nrChannels;
-    unsigned char *data = stbi_load("/Users/dorishe/Desktop/images/cotton_rope_lrg.jpg", &width, &height, &nrChannels, 0);
-    unsigned int textureID;
-    glGenTextures(1, &textureID);
-    glBindTexture(GL_TEXTURE_2D, textureID);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    stbi_image_free(data);
+    flag=0;
+
 }
 
 Geometry::Geometry(glm::vec3 point[],float rI,float gI,float bI) {
@@ -66,6 +59,7 @@ Geometry::Geometry(glm::vec3 point[],float rI,float gI,float bI) {
     r=rI;
     g=gI;
     b=bI;
+    flag=1;
 	for (int i = 0; i < 16; i++) {
 		ctrlPoints[i] = point[i];
 	}
@@ -126,15 +120,18 @@ void Geometry::draw(glm::mat4 C) {
 	auto uModelview = glGetUniformLocation(shaderProgramCube, "modelview");
 	auto colorI = glGetUniformLocation(shaderProgramCube, "color");
     auto uToWorld = glGetUniformLocation(shaderProgramCube, "toWorld");
+    auto uFlag = glGetUniformLocation(shaderProgramCube, "flag");
 	// Now send these values to the shader program
 	glUniformMatrix4fv(uProjection, 1, GL_FALSE, &Window::P[0][0]);
 	glUniformMatrix4fv(uModelview, 1, GL_FALSE, &modelview[0][0]);
     auto toWorld=glm::mat4(1.0f);
     glUniformMatrix4fv(uToWorld, 1, GL_FALSE, &toWorld[0][0]);
+    glUniform1i(uFlag, flag);
     glUniform3f(colorI, r, g, b);
 	glBindVertexArray(VAO);
 	glDrawElements(GL_TRIANGLES, sizeof(unsigned)*2400, GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
+    
 
 };
 void Geometry::update(glm::vec3 point[]) {

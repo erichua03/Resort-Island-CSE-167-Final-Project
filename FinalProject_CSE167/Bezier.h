@@ -40,6 +40,7 @@ public:
 class Geometry : public Node {
 public:
 	int acc = 0;
+    int flag;
 	//float bazierCurve[441 * 3] = {};
     //unsigned int indices[400*3*2];
     std::vector<float> bazierCurve;

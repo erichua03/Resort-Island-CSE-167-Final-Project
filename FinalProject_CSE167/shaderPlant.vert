@@ -14,6 +14,7 @@ uniform mat4 projection;
 uniform mat4 modelview;
 uniform mat4 toWorld;
 uniform vec3 color;
+uniform int flag;
 
 // Outputs of the vertex shader are the inputs of the same name of the fragment shader.
 // The default output, gl_Position, should be assigned something. You can define as many
@@ -26,5 +27,18 @@ void main()
     // OpenGL maintains the D matrix so you only need to multiply by P, V (aka C inverse), and M
     gl_Position = projection * modelview *toWorld*vec4(position.x, position.y, position.z, 1.0);
     sampleExtraOutput = 1.0f;
-    outColor = color;
+    if (flag==1){
+        if (position.x>15&&position.x<30){
+            outColor = color;
+        }
+        else if (position.x>30){
+            outColor = vec3(0.6f,0.8f,0.9f);
+        }
+        else{
+            outColor = vec3(0.6f,0.1f,0.9f);
+        }
+    }
+    else{
+        outColor = color;
+    }
 }
