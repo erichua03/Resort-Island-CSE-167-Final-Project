@@ -15,11 +15,13 @@ GLint Window::shaderProgram_terrain;
 GLint Window::shaderProgram_plant;
 GLint Window::shaderProgram_house;
 GLint Window::shaderProgram_obj; // bunny debugging
+GLint Window::mapShaderProgram;
 
 vector<glm::vec3> terrainVert;
 vector<glm::vec3> treeVert;
 int plantMove=0;
 
+bool motion = false;
 
 // On some systems you need to change this to the absolute path
 #define SKYBOX_VERTEX_SHADER_PATH "skyboxShader.vert"
@@ -37,6 +39,8 @@ int plantMove=0;
 #define OBJ_VERTEX_SHADER_PATH "objshader.vert"
 #define OBJ_FRAGMENT_SHADER_PATH "objshader.frag"
 
+#define MAP_VERTEX_SHADER_PATH "Environment.vert"
+#define MAP_FRAGMENT_SHADER_PATH "Environment.frag"
 // Default camera parameters
 ////glm::vec3 Window::cam_pos = glm::vec3(-400.0f, 200.0f, 30.0f);        // e  | Position of camera
 //glm::vec3 Window::cam_pos(-100.0f, 50.0f, 10.0f);        // e  | Position of camera
@@ -130,6 +134,8 @@ OBJObject * obj;
 //const char *noise1 = "noise1.ppm";
 //const char *noise2 = "noise2.ppm";
 //char* noiseFile;
+Transform* airplane;
+Geometry * airobj;
 
 void Window::initialize_objects()
 {
@@ -168,7 +174,7 @@ void Window::initialize_objects()
     shaderProgram_terrain = LoadShaders(TERRAIN_VERTEX_SHADER_PATH, TERRAIN_FRAGMENT_SHADER_PATH);
     shaderProgram_plant = LoadShaders(PLANT_VERTEX_SHADER_PATH, PLANT_FRAGMENT_SHADER_PATH);
     shaderProgram_house = LoadShaders(HOUSE_VERTEX_SHADER_PATH, HOUSE_FRAGMENT_SHADER_PATH);
-    
+    mapShaderProgram = LoadShaders(MAP_VERTEX_SHADER_PATH, MAP_FRAGMENT_SHADER_PATH);
     midX = (Terrain::maxX + Terrain::minX)/2.0f;
     midY = (Terrain::maxY + Terrain::minY)/2.0f;
     midZ = (Terrain::maxZ + Terrain::minZ)/2.0f;
@@ -226,6 +232,18 @@ void Window::initialize_objects()
         house->addChild(fl);
         buildMap->addChild(house);
     }
+    
+    
+    /*motion blur */
+     airobj = new Geometry("air.obj");
+    
+     airplane = new Transform(glm::mat4(1.0f));
+     airplane->rotate(3.14/2,glm::vec3(0,1,0));
+     airplane->rotate(3.14/10, glm::vec3(1, 0, 0));
+     airplane->translate(100,100,300);
+     airplane->scale(10,10,10);
+     airplane->addChild(airobj);
+
 }
 
 void Window::display_callback(GLFWwindow* window)
@@ -234,13 +252,13 @@ void Window::display_callback(GLFWwindow* window)
     // Clear the color and depth buffers
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // Use the shader of programID
+////    // Use the shader of programID
     glUseProgram(shaderProgram_skybox);
 
     // Render the object
     skybox->draw(shaderProgram_skybox);
     
-    // Bunny test
+//     Bunny test
 //        obj->toWorld = terrainMat;
 //    glUseProgram(shaderProgram_obj);
 //    obj->draw(shaderProgram_obj);
@@ -267,7 +285,7 @@ void Window::display_callback(GLFWwindow* window)
         TERRAIN_RIGHT = false;
     }
     
-    // Draw terrain
+//     Draw terrain
     glUseProgram(shaderProgram_terrain);
     terrain->draw(shaderProgram_terrain, terrainMat);
 //    island->draw(shaderProgram_terrain, terrainMat);
@@ -291,10 +309,15 @@ void Window::display_callback(GLFWwindow* window)
     plant8->draw(shaderProgram_plant, 3, glm::mat4(1.0f), glm::vec3(-100.0f,-10.f,80.0f), 'A', rule1);
     flag->draw(V);
     
-    // Draw houses
+    glUseProgram(mapShaderProgram);
+    glUniformMatrix4fv(glGetUniformLocation(mapShaderProgram, "view"), 1, GL_FALSE, &V[0][0]);
+    glUniform3fv(glGetUniformLocation(mapShaderProgram, "cameraPos"), 1, &cam_pos[0]);
+    airplane->draw(mapShaderProgram, glm::mat4(1.0f));
+//     Draw houses
     glUseProgram(shaderProgram_house);
     buildMap->draw(shaderProgram_house,glm::mat4(1.0f));
-    
+
+
     light_ptr = &dir_light;
     light_ptr->draw(shaderProgram_house);
     
@@ -302,7 +325,50 @@ void Window::display_callback(GLFWwindow* window)
     glfwPollEvents();
     // Swap buffers
     glfwSwapBuffers(window);
-
+    int n = 300;
+    int i = 0;
+    
+    while (true) {
+        if (motion == true) {
+            double preTime = glfwGetTime();
+            airplane->translate(-0.001, 0, 0);
+            double currTime = glfwGetTime();
+            float timestep = currTime - preTime;
+            
+            glUseProgram(mapShaderProgram);
+            glUniformMatrix4fv(glGetUniformLocation(mapShaderProgram, "view"), 1, GL_FALSE, &V[0][0]);
+            glUniform3fv(glGetUniformLocation(mapShaderProgram, "cameraPos"), 1, &cam_pos[0]);
+            airplane->draw(mapShaderProgram, glm::mat4(1.0f));
+            
+            
+            /*
+             glUseProgram(shaderProgram);
+             light_ptr = &dir_light;
+             light_ptr->draw(shaderProgram);
+             */
+            if (i == 0)
+                glAccum(GL_LOAD, 1.0 / n);
+            else
+                glAccum(GL_ACCUM, 1.0 / n);
+            
+            i++;
+            
+            if (i >= n) {
+                i = 0;
+                glAccum(GL_RETURN, 1.0);
+                // Gets events, including input such as keyboard and mouse or window resizing
+                glfwPollEvents();
+                // Swap buffers
+                glfwSwapBuffers(window);
+                //wait_until_next(timestep);
+            }
+            
+        }
+        
+        if (motion == false) {
+            break;
+        }
+    }
 }
 
 void Window::idle_callback()
@@ -468,6 +534,18 @@ void Window::key_callback(GLFWwindow* window, int key, int scancode, int action,
             case GLFW_KEY_T:
                 TERRAIN_SWITCH = true;
                 break;
+        }
+        if (key == GLFW_KEY_M) {
+            if (key == GLFW_KEY_M) {
+                cout << "up" << endl;
+                if (motion == false) {
+                    motion = true;
+                }
+                else {
+                    motion= false;
+                }
+            }
+            
         }
         if (key == GLFW_KEY_R) {
             /* House */
