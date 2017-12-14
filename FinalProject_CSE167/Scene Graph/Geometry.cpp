@@ -184,7 +184,7 @@ void Geometry::parse(const char *filepath)
 	float maxZ = std::numeric_limits<float>::min();
 
 	fp = fopen(filepath, "rb");  // make the file name configurable so you can load other files
-	if (fp == NULL) { cerr << "error loading file" << endl; exit(-1); }  // just in case the file can't be found or is corrupt
+    if (fp == NULL) { cerr << "error loading file: " << filepath << endl; exit(-1); }  // just in case the file can't be found or is corrupt
 
 
 

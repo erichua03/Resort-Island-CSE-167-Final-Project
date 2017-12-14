@@ -6,6 +6,9 @@ using namespace std;
 
 #define VERTEX_SHADER_PATH1 "shaderPlant.vert"
 #define FRAGMENT_SHADER_PATH1 "shaderPlant.frag"
+
+const char *flagImg = "flag_1.ppm";
+
 //Factorial
 int factorial(int n)
 {
@@ -47,7 +50,6 @@ Geometry1::Geometry1(vector<glm::vec3> point, vector<unsigned> index,float rI,fl
     g=gI;
     b=bI;
     flag=0;
-
 }
 
 Geometry1::Geometry1(glm::vec3 point[],float rI,float gI,float bI) {
@@ -61,6 +63,7 @@ Geometry1::Geometry1(glm::vec3 point[],float rI,float gI,float bI) {
 	for (int i = 0; i < 16; i++) {
 		ctrlPoints[i] = point[i];
 	}
+    flagTexture = loadTexture(flagImg); //
 	shaderProgramCube = LoadShaders(VERTEX_SHADER_PATH1, FRAGMENT_SHADER_PATH1);
     for (int i = 0; i <= 20; i ++) {
         for (int j =0; j<=20;j++){
@@ -85,7 +88,7 @@ Geometry1::Geometry1(glm::vec3 point[],float rI,float gI,float bI) {
         }
     }
     for(int i=0;i<bazierCurve.size();i++){
-        cout<<bazierCurve[i]<<endl;
+//        cout<<bazierCurve[i]<<endl;
     }
     for (int i=0;i<20;i++){
         for(int j=0;j<20;j++){
@@ -127,11 +130,38 @@ void Geometry1::draw(glm::mat4 C) {
     glUniform1i(uFlag, flag);
     glUniform3f(colorI, r, g, b);
 	glBindVertexArray(VAO);
+    
+    // bind flag texture
+    if (flag == 1) {
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, flagTexture);
+        glUniform1i(glGetUniformLocation(shaderProgramCube, "tex_flag"), 1);
+    }
+
 	glDrawElements(GL_TRIANGLES, sizeof(unsigned)*2400, GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
-    
-
 };
+
+GLuint Geometry1::loadTexture(const char *textureFile) {
+    unsigned int textureID;
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_2D, textureID);
+    
+    int width, height, nrChannels;
+    unsigned char *data = stbi_load(textureFile, &width, &height, &nrChannels, 0);
+    if (data) glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, data);
+    else cout << "Image failed to load at path: " << textureFile << endl;
+    stbi_image_free(data);
+    
+//    glGenerateMipmap(GL_TEXTURE_2D);  // Generate mipmaps
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    return textureID;
+}
+
 void Geometry1::update(glm::vec3 point[]) {
 	for (int i = 0; i < 16; i++) {
 		ctrlPoints[i] = point[i];

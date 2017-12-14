@@ -34,8 +34,9 @@ void main()
     // create a TBN matrix to get normal mapping working
     vec3 T = normalize(vec3(model * vec4(tangent, 0.0f)));
     vec3 B = normalize(vec3(model * vec4(bitangent, 0.0f)));
-    // or B = cross(N, T);
     vec3 N = normalize(vec3(model * vec4(normal, 0.0f)));
+    // or B = cross(N, T);
+//    vec3 B = cross(N, T);
     TBN = mat3(T, B, N);
     
     // Two ways to use TBN matrix for normal mapping (second way preferred)

@@ -21,6 +21,8 @@
 #endif
 #include <GLFW/glfw3.h>
 #include "stb_image.h"
+#include "Group.h"
+#include "Node.h"
 
 // Use of degrees is deprecated. Use radians instead.
 // Include lines below for compiler to recognize glm functions
@@ -34,7 +36,7 @@
 
 using namespace std;
 
-class Terrain {
+class Terrain:public Node{
 protected:
     vector<glm::vec3> vertices; // binded with VBO
     vector<GLuint> indices; // binded with EBO
@@ -47,6 +49,7 @@ protected:
     // texCoords_2D = vec2(position.x, position.z);
     
 public:
+    static vector<glm::vec3> vert;
     
     GLuint VAO, VBO, EBO, NBO; // vertices, indices, normals
     GLuint VBO_T, VBO_BT; // tangent and bitangent
@@ -82,6 +85,11 @@ public:
     
     void generateTangents(); // and bitangents
     void gen_tangent_bitangent(glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, glm::vec2 uv0, glm::vec2 uv1, glm::vec2 uv2);
+    
+    // Node functions
+    glm::mat4 M;
+    void update();
+    void translate(float x,float y, float z);
 };
 
 #endif /* Terrain_h */

@@ -13,6 +13,7 @@ Plant::Plant()
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
     glGenBuffers(1, &EBO);
+    glGenBuffers(1, &NBO);
     
     // Bind the Vertex Array Object (VAO) first, then bind the associated buffers to it.
     // Consider the VAO as a container for all your buffers.
@@ -37,6 +38,14 @@ Plant::Plant()
     // In what order should it draw those vertices? That's why we'll need a GL_ELEMENT_ARRAY_BUFFER for this.
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned)*indices.size(), &indices[0], GL_STATIC_DRAW);
+    
+    // Bind normals
+    glBindBuffer(GL_ARRAY_BUFFER, NBO);
+    glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(GLfloat) * 3, normals.data(), GL_STATIC_DRAW); // sizeof(glm::vec3)
+    
+    // Enable the usage of layout location 1
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0); // when layout=1
     
     // Unbind the currently bound buffer so that we don't accidentally make unwanted changes to it.
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -114,8 +123,11 @@ void Plant::draw(GLuint shaderProgram,int n, glm::mat4 trans, glm::vec3 start, c
     glUniformMatrix4fv(uToWorld, 1, GL_FALSE, &(glm::translate(glm::mat4(1.0f),start)*trans1)[0][0]);
     glUniform1i(uFlag, 0);
     
+    glUniform3f(glGetUniformLocation(shaderProgram, "lightPos"), 0.0f, 0.0f, 0.0f);
+    glUniform3f(glGetUniformLocation(shaderProgram, "viewPos"), Window::cam_pos.x, Window::cam_pos.y, Window::cam_pos.z);
+    
 //    if(n>Window::layers-2){
-    if(n > 3){
+    if(n > 1){
         glUniform3f(uColor, 0.8f, 0.4f, 0.1f);
     }
     else{
@@ -125,7 +137,7 @@ void Plant::draw(GLuint shaderProgram,int n, glm::mat4 trans, glm::vec3 start, c
     // Now draw the cube. We simply need to bind the VAO associated with it.
     glBindVertexArray(VAO);
     // Tell OpenGL to draw with triangles, using 36 indices, the type of the indices, and the offset to start from
-    glDrawElements(GL_TRIANGLES, sizeof(unsigned)*indices.size(), GL_UNSIGNED_INT, 0);
+    glDrawElements(GL_TRIANGLES, (GLsizei)(sizeof(unsigned)*indices.size()), GL_UNSIGNED_INT, 0);
     // Unbind the VAO when we're done so we don't accidentally draw extra stuff or tamper with its bound buffers
     glBindVertexArray(0);
     string next;
@@ -152,16 +164,6 @@ void Plant::draw(GLuint shaderProgram,int n, glm::mat4 trans, glm::vec3 start, c
 }
 
 void Plant::update(int i){
-    if (i==1){
-        if (angleA<90){
-            angleA+=10;
-            angleB+=10;
-        }
-    }
-    else{
-        if (angleA>0){
-            angleA-=10;
-            angleB-=10;
-        }
-    }
+    angleA+=i;
+    angleB+=i;
 }

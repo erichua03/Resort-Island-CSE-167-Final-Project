@@ -21,11 +21,6 @@
 #define TERRAIN_SIZE  500.0f // width
 #define TERRAIN_HEIGHT 100
 
-// Enable multitexture blending across the terrain
-//#ifndef ENABLE_MULTITEXTURE
-//#define ENABLE_MULTITEXTURE 1
-//#endif
-
 // Enable the blend constants based on the slope of the terrain
 
 float Terrain::minX = numeric_limits<float>::max();
@@ -37,19 +32,19 @@ float Terrain::maxZ = numeric_limits<float>::min();
 
 int width, height, nrChannels;
 
-//int width_0, height_0, nrChannels_0;
-//int width_1, height_1, nrChannels_1;
+vector<glm::vec3> Terrain::vert;
 
 const int SCALE = 60.0f;
 const char *noise1 = "noise1.ppm";
 const char *noise2 = "noise2.ppm";
+const char *noise3 = "noise3.ppm";
 const char *rockImg = "rock.ppm";
 const char *grassImg = "grass.ppm";
 const char *snowImg = "snow.ppm";
 const char *normalMapImg = "normal_map.ppm";
 
 // positions the plane is built up from
-glm::vec3 pos1, pos2, pos3, pos4;
+//glm::vec3 pos1, pos2, pos3, pos4;
 
 float Terrain::getHeight(int x, int z, int height) {
     if ((float)x + (float)z * (float)height > yVal.size()-1) return 0.0f;
@@ -74,7 +69,10 @@ Terrain::Terrain() {
 //    int width, height, nrChannels;
     // Load noise image as height map
     unsigned char *rgb = stbi_load(noise2, &width, &height, &nrChannels, 0); // height map
-    if (!rgb) cout << "Image failed to load at path: " << noise2 << endl;
+    if (!rgb) {
+        cout << "Image failed to load at path: " << noise2 << endl;
+        exit(-1);
+    }
     // rgb is now three bytes per pixel, width * height size. Or NULL if load failed.
     
     for (size_t i = 0; i < width * height * 3; i += 3) {
@@ -89,6 +87,8 @@ Terrain::Terrain() {
 
     generateHeightMap(width, height);
     generateVertices();
+    vert = vertices;
+    
     generateIndices();
     generateNormals();
     
@@ -106,6 +106,8 @@ Terrain::Terrain() {
     glGenBuffers(1, &VBO);
     glGenBuffers(1, &NBO);
     glGenBuffers(1, &EBO);
+    glGenBuffers(1, &VBO_T);
+    glGenBuffers(1, &VBO_BT);
     
     glBindVertexArray(VAO);
     // Bind vertices
@@ -128,21 +130,21 @@ Terrain::Terrain() {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), &(indices[0]), GL_STATIC_DRAW);
     
-//    // Bind tangents
-//    glBindBuffer(GL_ARRAY_BUFFER, VBO_T);
-//    glBufferData(GL_ARRAY_BUFFER, tangents.size() * sizeof(GLfloat) * 3, tangents.data(), GL_STATIC_DRAW);
-//
-//    // Enable the usage of layout location 2
-//    glEnableVertexAttribArray(2);
-//    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
-//
-//    // Bind bitangents
-//    glBindBuffer(GL_ARRAY_BUFFER, VBO_BT);
-//    glBufferData(GL_ARRAY_BUFFER, bitangents.size() * sizeof(GLfloat) * 3, bitangents.data(), GL_STATIC_DRAW);
-//
-//    // Enable the usage of layout location 3
-//    glEnableVertexAttribArray(3);
-//    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+    // Bind tangents
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_T);
+    glBufferData(GL_ARRAY_BUFFER, tangents.size() * sizeof(GLfloat) * 3, tangents.data(), GL_STATIC_DRAW);
+
+    // Enable the usage of layout location 2
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+
+    // Bind bitangents
+    glBindBuffer(GL_ARRAY_BUFFER, VBO_BT);
+    glBufferData(GL_ARRAY_BUFFER, bitangents.size() * sizeof(GLfloat) * 3, bitangents.data(), GL_STATIC_DRAW);
+
+    // Enable the usage of layout location 3
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
     
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
@@ -175,7 +177,8 @@ void Terrain::generateUVs() {
     for (glm::vec3 vertex: vertices) {
 //        glm::vec2 texCoords = glm::vec2(position.x, position.z);
         glm::vec3 mappedVertex = glm::normalize(vertex * 0.5f + 0.5f); // map to [0,1]
-        glm::vec2 uv = glm::vec2(mappedVertex.x, mappedVertex.z);
+//        glm::vec3 mappedVertex = glm::normalize(vertex * 2.0f - 1.0f); // tansform to range [-1,1]
+        glm::vec2 uv = glm::vec2(mappedVertex.x, mappedVertex.y);
         uvs.push_back(uv);
     }
 }
@@ -213,9 +216,6 @@ void Terrain::gen_tangent_bitangent(glm::vec3 v0, glm::vec3 v1, glm::vec3 v2, gl
 
     tangent = glm::normalize(tangent);
     bitangent = glm::normalize(bitangent);
-    
-//    cout << "tangent: " << tangent.x << ", " << tangent.y << ", " << tangent.z << endl;
-//    cout << "bitangent: " << bitangent.x << ", " << bitangent.y << ", " << bitangent.z << endl;
 
 //     set the same tangent for all three vertices of the triangle
 //     they will be merged in VBOindexer?
@@ -228,9 +228,6 @@ void Terrain::gen_tangent_bitangent(glm::vec3 v0, glm::vec3 v1, glm::vec3 v2, gl
     bitangents.push_back(bitangent);
     
 //    tangent.x = coef * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
-//
-//    cout << "deltaUV2.y * edge1.x: " << deltaUV2.y * edge1.x << ", " << "deltaUV1.y * edge2.x: " << deltaUV1.y * edge2.x << endl;
-//
 //    tangent.y = coef * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
 //    tangent.z = coef * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
 //    tangent = glm::normalize(tangent);
@@ -243,6 +240,8 @@ void Terrain::gen_tangent_bitangent(glm::vec3 v0, glm::vec3 v1, glm::vec3 v2, gl
 //    bitangent.z = coef * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
 //    bitangent = glm::normalize(bitangent);
 //    bitangents.push_back(bitangent);
+//
+////    cout << "bitangent: " << (float)bitangent.x << ", " << (float)bitangent.y << ", " << (float)bitangent.z << endl;
 }
 
 Terrain::~Terrain() {
@@ -364,7 +363,9 @@ void Terrain::draw(GLuint shaderProgram, glm::mat4 toWorld) {
 
 }
 
+void Terrain::update() {}
 
+void Terrain::translate(float x, float y, float z) {}
 
 
 

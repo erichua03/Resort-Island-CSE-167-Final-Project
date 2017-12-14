@@ -1,6 +1,10 @@
 #include "Node.h"
 #include "Geometry.h"
 #include <vector>
+
+#ifndef GROUP_H
+#define GROUP_H
+
 class Group : public Node {
 public:
 	Group(char* name);
@@ -15,3 +19,4 @@ public:
 	void removeChild(Node* child);
 	void update() ;
 };
+#endif

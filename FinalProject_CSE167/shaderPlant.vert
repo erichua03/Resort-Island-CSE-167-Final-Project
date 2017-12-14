@@ -8,12 +8,14 @@
 
 
 layout (location = 0) in vec3 position;
+layout (location = 1) in vec3 normal;
 
 // Uniform variables can be updated by fetching their location and passing values to that location
 uniform mat4 projection;
 uniform mat4 modelview;
 uniform mat4 toWorld;
 uniform vec3 color;
+
 uniform int flag;
 
 // Outputs of the vertex shader are the inputs of the same name of the fragment shader.
@@ -21,6 +23,9 @@ uniform int flag;
 // extra outputs as you need.
 out float sampleExtraOutput;
 out vec3 outColor;
+out vec3 aNorm; //
+out vec3 fragPos;
+out vec2 texCoords;
 
 void main()
 {
@@ -41,4 +46,9 @@ void main()
     else{
         outColor = color;
     }
+    
+    //
+    fragPos = vec3(toWorld * vec4(position, 1.0f));
+    aNorm = mat3(transpose(inverse(toWorld))) * normal;
+    texCoords = vec2(position.x, position.z);
 }

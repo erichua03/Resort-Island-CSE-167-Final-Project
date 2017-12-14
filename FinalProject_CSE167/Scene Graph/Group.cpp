@@ -11,8 +11,8 @@ Group::Group(char * name)
 }
 Group::Group()
 {
-	sphere = new Geometry("../sphere.obj");
-	sphere->scale(2.5f, 2.5f, 2.5f);
+//    sphere = new Geometry("cube.obj");
+//    sphere->scale(2.5f, 2.5f, 2.5f);
 	//bounding = false;
 }
 Group::~Group()

@@ -54,5 +54,8 @@ public:
 	void update(glm::vec3 point[]);
 	int typeR;
     float r,g,b;
+    
+    GLuint flagTexture;
+    GLuint loadTexture(const char* textureFile);
 };
 #endif

@@ -25,8 +25,10 @@ void main()
     vec3 texColor_0 = texture(texture_0, texCoords).rgb;
     vec3 texColor_1 = texture(texture_1, texCoords).rgb;
     vec3 texColor_2 = texture(texture_2, texCoords).rgb;
+    vec3 texColor_nm = texture(normalMap, texCoords).rgb;
     vec3 texColor;
-
+    
+    // mixed texture mapping on varying heights
     float height = fragPos.y / terrainNormal.y;
     
     const float range1 = -60.0f;
@@ -54,6 +56,9 @@ void main()
 //    vec3 norm = texture(normalMap, texCoords).rgb;
 //    norm = normalize(norm * 2.0f - 1.0f);
 //    norm = normalize(TBN * norm);
+//    vec3 norm = normalize(texture(normalMap, texCoords).xyz) * 2.0f - 1.0f;
+    
+    vec3 norm = normalize(terrainNormal); //
 
     //////lighting//////
     vec3 ks = vec3(1.0f, 1.0f, 1.0f);
@@ -63,9 +68,9 @@ void main()
     vec3 lightColor = vec3(1.0f, 1.0f, 1.0f);
     vec3 objColor = vec3(1.0f, 1.0f, 1.0f);
 
+//    vec3 lightVec = lightPos * TBN;
     vec3 lightDir = normalize(lightPos - fragPos);
-
-    vec3 norm = normalize(terrainNormal); //
+//    vec3 lightDir = normalize(lightVec - fragPos);
 
     // Diffuse color
     float diff = max(dot(norm, lightDir), 0.0f);
@@ -82,7 +87,7 @@ void main()
     vec3 specular = ks * spec * lightColor; // ks * cl * (e * R) ^ p
 
     // Final color
-//    vec3 result = (ambient + diffuse + specular) * objColor;
+//    vec3 result = (ambient + diffuse + specular) * texColor_nm;
     vec3 result = (ambient + diffuse + specular) * texColor;
     fragColor = vec4(result, 1.0f);
     

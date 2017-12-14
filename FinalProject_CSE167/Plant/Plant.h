@@ -29,7 +29,7 @@ public:
     std::vector<glm::vec3> normals;
     std::vector<glm::vec3> vertices;
     
-    GLuint VBO, VAO,EBO;
+    GLuint VBO, VAO,EBO, NBO;
     GLuint uProjection, uModelview;
     glm::mat4 toWorld;
     

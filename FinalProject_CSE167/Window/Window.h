@@ -21,11 +21,10 @@
 #include "shader.h"
 #include "Skybox.h"
 #include "Terrain.h"
-#include "Water.h"
 #include "Transform.h"
 #include "Plant.h"
 #include "Bezier.h"
-
+#include "OBJObject.h" // bunny debugging
 
 using namespace std;
 
@@ -36,6 +35,7 @@ public:
     static GLint shaderProgram_terrain;
     static GLint shaderProgram_plant;
     static GLint shaderProgram_house;
+    static GLint shaderProgram_obj; // bunny debugging
     
     static glm::vec3 cam_pos;        // e  | Position of camera
     static glm::vec3 cam_look_at;    // d  | This is where the camera looks at
@@ -65,6 +65,7 @@ public:
     static bool TERRAIN_DOWN;
     static bool TERRAIN_LEFT;
     static bool TERRAIN_RIGHT;
+    static bool TERRAIN_SWITCH;
     
 	static void initialize_objects();
 	static void clean_up();
