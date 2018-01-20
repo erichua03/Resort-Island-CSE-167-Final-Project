@@ -6,3 +6,5 @@ This is an interactive software application which uses advanced rendering effect
 - Procedurally generated terrain
 - Surface made with Bezier patches
 - Motion blur
+
+To see rendering effects, view link: https://youtu.be/KdzkvsE1b4o
